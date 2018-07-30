@@ -57,7 +57,7 @@ subscription-manager repos --disable="*"
 subscription-manager repos \
     --enable="rhel-7-server-rpms" \
     --enable="rhel-7-server-extras-rpms" \
-    --enable="rhel-7-server-ose-3.9-rpms" \
+    --enable="rhel-7-server-ose-3.10-rpms" \
     --enable="rhel-7-server-ansible-2.4-rpms" \
     --enable="rhel-7-fast-datapath-rpms" \
     --enable="rh-gluster-3-client-for-rhel-7-server-rpms"
