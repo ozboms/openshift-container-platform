@@ -75,13 +75,13 @@ yum -y update glusterfs-fuse
 echo $(date) " - Base package insallation complete"
 
 # Excluders for OpenShift
-yum -y install atomic-openshift-excluder atomic-openshift-docker-excluder
-atomic-openshift-excluder unexclude
+# yum -y install atomic-openshift-excluder atomic-openshift-docker-excluder
+# atomic-openshift-excluder unexclude
 
 # Install OpenShift utilities
 echo $(date) " - Installing OpenShift utilities"
 
-yum -y install atomic-openshift-utils
+yum -y install openshift-ansible
 echo $(date) " - OpenShift utilities insallation complete"
 
 # Installing Azure CLI

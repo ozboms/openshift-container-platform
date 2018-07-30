@@ -67,8 +67,8 @@ yum -y update glusterfs-fuse
 yum -y update --exclude=WALinuxAgent
 
 # Excluders for OpenShift
-yum -y install atomic-openshift-excluder atomic-openshift-docker-excluder
-atomic-openshift-excluder unexclude
+# yum -y install atomic-openshift-excluder atomic-openshift-docker-excluder
+# atomic-openshift-excluder unexclude
 
 # Grow Root File System
 echo $(date) " - Grow Root FS"
@@ -84,7 +84,7 @@ xfs_growfs $rootdev
 
 # Install OpenShift utilities
 echo $(date) " - Installing OpenShift utilities"
-yum -y install atomic-openshift-utils
+yum -y install openshift-ansible
 
 # Install Docker
 echo $(date) " - Installing Docker"
