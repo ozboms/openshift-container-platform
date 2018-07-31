@@ -66,10 +66,10 @@ fi
 if [[ $AZURE == "true" ]]
 then
     CLOUDKIND="openshift_cloudprovider_kind=azure
-openshift_cloudprovider_azure_client_id="{{ lookup('env','AADCLIENTID') }}"
-openshift_cloudprovider_azure_client_secret="{{ lookup('env','AADCLIENTSECRET') }}"
-openshift_cloudprovider_azure_tenant_id="{{ lookup('env','TENANTID') }}"
-openshift_cloudprovider_azure_subscription_id="{{ lookup('env','SUBSCRIPTIONID') }}"
+openshift_cloudprovider_azure_client_id=\"{{ lookup('env','AADCLIENTID') }}\"
+openshift_cloudprovider_azure_client_secret=\"{{ lookup('env','AADCLIENTSECRET') }}\"
+openshift_cloudprovider_azure_tenant_id=\"{{ lookup('env','TENANTID') }}\"
+openshift_cloudprovider_azure_subscription_id=\"{{ lookup('env','SUBSCRIPTIONID') }}\"
 openshift_cloudprovider_azure_resource_group=$RESOURCEGROUP
 openshift_cloudprovider_azure_location=$LOCATION"
 fi
