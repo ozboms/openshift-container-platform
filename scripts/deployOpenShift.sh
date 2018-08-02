@@ -261,18 +261,18 @@ $cnsgroup
 [new_nodes]
 EOF
 
-if [[ $AZURE == "true" ]]
-then
-    # Create /etc/origin/cloudprovider/azure.conf on all hosts if Azure is enabled
-    runuser $SUDOUSER -c "ansible-playbook -f 10 ~/openshift-container-platform-playbooks/create-azure-conf.yaml"
-    if [ $? -eq 0 ]
-    then
-        echo $(date) " - Creation of Cloud Provider Config (azure.conf) completed on all nodes successfully"
-    else
-        echo $(date) " - Creation of Cloud Provider Config (azure.conf) completed on all nodes failed to complete"
-        exit 13
-    fi
-fi
+# if [[ $AZURE == "true" ]]
+# then
+    # # Create /etc/origin/cloudprovider/azure.conf on all hosts if Azure is enabled
+    # runuser $SUDOUSER -c "ansible-playbook -f 10 ~/openshift-container-platform-playbooks/create-azure-conf.yaml"
+    # if [ $? -eq 0 ]
+    # then
+        # echo $(date) " - Creation of Cloud Provider Config (azure.conf) completed on all nodes successfully"
+    # else
+        # echo $(date) " - Creation of Cloud Provider Config (azure.conf) completed on all nodes failed to complete"
+        # exit 13
+    # fi
+# fi
 
 # Setup NetworkManager to manage eth0
 echo $(date) " - Running NetworkManager playbook"
