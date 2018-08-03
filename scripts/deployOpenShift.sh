@@ -66,10 +66,10 @@ fi
 if [[ $AZURE == "true" ]]
 then
     CLOUDKIND="openshift_cloudprovider_kind=azure
-openshift_cloudprovider_azure_client_id=\"{{ lookup('env','AADCLIENTID') }}\"
-openshift_cloudprovider_azure_client_secret=\"{{ lookup('env','AADCLIENTSECRET') }}\"
-openshift_cloudprovider_azure_tenant_id=\"{{ lookup('env','TENANTID') }}\"
-openshift_cloudprovider_azure_subscription_id=\"{{ lookup('env','SUBSCRIPTIONID') }}\"
+openshift_cloudprovider_azure_client_id=\"{{ aadClientId }}\"
+openshift_cloudprovider_azure_client_secret=\"{{ aadClientSecret }}\"
+openshift_cloudprovider_azure_tenant_id=\"{{ tenantId }}\"
+openshift_cloudprovider_azure_subscription_id=\"{{ subscriptionId }}\"
 openshift_cloudprovider_azure_resource_group=$RESOURCEGROUP
 openshift_cloudprovider_azure_location=$LOCATION"
 fi
@@ -287,6 +287,10 @@ echo $(date) " - Restarting NetworkManager"
 runuser -l $SUDOUSER -c "ansible all -o -f 10 -b -m service -a \"name=NetworkManager state=restarted\""
 echo $(date) " - NetworkManager configuration complete"
 
+# Creating vars file for integrated installation of cloud provider during setup
+echo $(date) " - Creating vars file for integrated installation of cloud provider"
+runuser $SUDOUSER -c "ansible-playbook -f 10 ~/openshift-container-platform-playbooks/create-azure-var.yaml"
+
 # Initiating installation of OpenShift Container Platform using Ansible Playbook
 echo $(date) " - Running Prerequisites via Ansible Playbook"
 runuser -l $SUDOUSER -c "ansible-playbook -f 10 /usr/share/ansible/openshift-ansible/playbooks/prerequisites.yml"
@@ -294,7 +298,7 @@ echo $(date) " - Prerequisites check complete"
 
 # Initiating installation of OpenShift Container Platform using Ansible Playbook
 echo $(date) " - Installing OpenShift Container Platform via Ansible Playbook"
-runuser $SUDOUSER -c "ansible-playbook -e ansible_user=$SUDOUSER --private-key=/home/$SUDOUSER/.ssh/id_rsa -f 10 /usr/share/ansible/openshift-ansible/playbooks/deploy_cluster.yml"
+runuser -l $SUDOUSER -c "ansible-playbook -e @/etc/origin/cloudprovider/azurevars.yaml -f 10 /usr/share/ansible/openshift-ansible/playbooks/deploy_cluster.yml"
 if [ $? -eq 0 ]
 then
     echo $(date) " - OpenShift Cluster installed successfully"
