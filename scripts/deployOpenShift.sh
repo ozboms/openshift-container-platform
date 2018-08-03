@@ -268,7 +268,7 @@ EOF
 if [[ $AZURE == "true" ]]
 then
 # Create /etc/origin/cloudprovider/azurevars.yaml on bastion
-cat > /etc/origin/cloudprovider/azurevars.yaml <<EOF
+cat > azurevars.yaml <<EOF
 aadClientId: "{{ lookup('env','AADCLIENTID') }}"
 aadClientSecret: "{{ lookup('env','AADCLIENTSECRET') }}"
 subscriptionId: "{{ lookup('env','SUBSCRIPTIONID') }}"
@@ -300,7 +300,7 @@ echo $(date) " - Prerequisites check complete"
 
 # Initiating installation of OpenShift Container Platform using Ansible Playbook
 echo $(date) " - Installing OpenShift Container Platform via Ansible Playbook"
-runuser -l $SUDOUSER -c "ansible-playbook -e @/etc/origin/cloudprovider/azurevars.yaml -f 10 /usr/share/ansible/openshift-ansible/playbooks/deploy_cluster.yml"
+runuser -l $SUDOUSER -c "ansible-playbook -e @azurevars.yaml -f 10 /usr/share/ansible/openshift-ansible/playbooks/deploy_cluster.yml"
 if [ $? -eq 0 ]
 then
     echo $(date) " - OpenShift Cluster installed successfully"
