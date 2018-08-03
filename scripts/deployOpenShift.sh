@@ -269,10 +269,10 @@ if [[ $AZURE == "true" ]]
 then
 # Create /etc/origin/cloudprovider/azurevars.yaml on bastion
 cat > azurevars.yaml <<EOF
-aadClientId: "{{ lookup('env','AADCLIENTID') }}"
-aadClientSecret: "{{ lookup('env','AADCLIENTSECRET') }}"
-subscriptionId: "{{ lookup('env','SUBSCRIPTIONID') }}"
-tenantId: "{{ lookup('env','TENANTID') }}"
+aadClientId: "$AADCLIENTID"
+aadClientSecret: "$AADCLIENTSECRET"
+subscriptionId: "$SUBSCRIPTIONID"
+tenantId: "$TENANTID"
 EOF
 fi
 
