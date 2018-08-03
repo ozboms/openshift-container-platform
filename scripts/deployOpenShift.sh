@@ -70,6 +70,10 @@ openshift_cloudprovider_azure_client_id=\"{{ aadClientId }}\"
 openshift_cloudprovider_azure_client_secret=\"{{ aadClientSecret }}\"
 openshift_cloudprovider_azure_tenant_id=\"{{ tenantId }}\"
 openshift_cloudprovider_azure_subscription_id=\"{{ subscriptionId }}\"
+openshift_cloudprovider_azure_cloud=$CLOUDNAME
+openshift_cloudprovider_azure_vnet_name=$VNETNAME
+openshift_cloudprovider_azure_security_group_name=$NODENSG
+openshift_cloudprovider_azure_primary_availability_set_name=$NODEAVAILIBILITYSET
 openshift_cloudprovider_azure_resource_group=$RESOURCEGROUP
 openshift_cloudprovider_azure_location=$LOCATION"
 fi
@@ -261,18 +265,16 @@ $cnsgroup
 [new_nodes]
 EOF
 
-# if [[ $AZURE == "true" ]]
-# then
-    # # Create /etc/origin/cloudprovider/azure.conf on all hosts if Azure is enabled
-    # runuser $SUDOUSER -c "ansible-playbook -f 10 ~/openshift-container-platform-playbooks/create-azure-conf.yaml"
-    # if [ $? -eq 0 ]
-    # then
-        # echo $(date) " - Creation of Cloud Provider Config (azure.conf) completed on all nodes successfully"
-    # else
-        # echo $(date) " - Creation of Cloud Provider Config (azure.conf) completed on all nodes failed to complete"
-        # exit 13
-    # fi
-# fi
+if [[ $AZURE == "true" ]]
+then
+# Create /etc/origin/cloudprovider/azurevars.yaml on bastion
+cat > /etc/origin/cloudprovider/azurevars.yaml <<EOF
+aadClientId: "{{ lookup('env','AADCLIENTID') }}"
+aadClientSecret: "{{ lookup('env','AADCLIENTSECRET') }}"
+subscriptionId: "{{ lookup('env','SUBSCRIPTIONID') }}"
+tenantId: "{{ lookup('env','TENANTID') }}"
+EOF
+fi
 
 # Setup NetworkManager to manage eth0
 echo $(date) " - Running NetworkManager playbook"
@@ -287,9 +289,9 @@ echo $(date) " - Restarting NetworkManager"
 runuser -l $SUDOUSER -c "ansible all -o -f 10 -b -m service -a \"name=NetworkManager state=restarted\""
 echo $(date) " - NetworkManager configuration complete"
 
-# Creating vars file for integrated installation of cloud provider during setup
-echo $(date) " - Creating vars file for integrated installation of cloud provider"
-runuser $SUDOUSER -c "ansible-playbook -f 10 ~/openshift-container-platform-playbooks/create-azure-var.yaml"
+# # Creating vars file for integrated installation of cloud provider during setup
+# echo $(date) " - Creating vars file for integrated installation of cloud provider"
+# runuser $SUDOUSER -c "ansible-playbook -f 10 ~/openshift-container-platform-playbooks/create-azure-var.yaml"
 
 # Initiating installation of OpenShift Container Platform using Ansible Playbook
 echo $(date) " - Running Prerequisites via Ansible Playbook"
