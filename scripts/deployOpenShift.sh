@@ -268,7 +268,7 @@ EOF
 if [[ $AZURE == "true" ]]
 then
 # Create /etc/origin/cloudprovider/azurevars.yaml on bastion
-cat > azurevars.yaml <<EOF
+cat > /home/$SUDOUSER/azurevars.yaml <<EOF
 aadClientId: "$AADCLIENTID"
 aadClientSecret: "$AADCLIENTSECRET"
 subscriptionId: "$SUBSCRIPTIONID"
@@ -289,13 +289,9 @@ echo $(date) " - Restarting NetworkManager"
 runuser -l $SUDOUSER -c "ansible all -o -f 10 -b -m service -a \"name=NetworkManager state=restarted\""
 echo $(date) " - NetworkManager configuration complete"
 
-# # Creating vars file for integrated installation of cloud provider during setup
-# echo $(date) " - Creating vars file for integrated installation of cloud provider"
-# runuser $SUDOUSER -c "ansible-playbook -f 10 ~/openshift-container-platform-playbooks/create-azure-var.yaml"
-
 # Initiating installation of OpenShift Container Platform using Ansible Playbook
 echo $(date) " - Running Prerequisites via Ansible Playbook"
-runuser -l $SUDOUSER -c "ansible-playbook -f 10 /usr/share/ansible/openshift-ansible/playbooks/prerequisites.yml"
+runuser -l $SUDOUSER -c "ansible-playbook -e @azurevars.yaml -f 10 /usr/share/ansible/openshift-ansible/playbooks/prerequisites.yml"
 echo $(date) " - Prerequisites check complete"
 
 # Initiating installation of OpenShift Container Platform using Ansible Playbook
