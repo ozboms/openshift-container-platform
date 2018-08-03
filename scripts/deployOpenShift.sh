@@ -265,16 +265,16 @@ $cnsgroup
 [new_nodes]
 EOF
 
-if [[ $AZURE == "true" ]]
-then
-# Create /etc/origin/cloudprovider/azurevars.yaml on bastion
-cat > /home/$SUDOUSER/azurevars.yaml <<EOF
-aadClientId: "$AADCLIENTID"
-aadClientSecret: "$AADCLIENTSECRET"
-subscriptionId: "$SUBSCRIPTIONID"
-tenantId: "$TENANTID"
-EOF
-fi
+# if [[ $AZURE == "true" ]]
+# then
+# # Create /etc/origin/cloudprovider/azurevars.yaml on bastion
+# cat > /home/$SUDOUSER/azurevars.yaml <<EOF
+# aadClientId: "$AADCLIENTID"
+# aadClientSecret: "$AADCLIENTSECRET"
+# subscriptionId: "$SUBSCRIPTIONID"
+# tenantId: "$TENANTID"
+# EOF
+# fi
 
 # Setup NetworkManager to manage eth0
 echo $(date) " - Running NetworkManager playbook"
@@ -292,13 +292,13 @@ echo $(date) " - NetworkManager configuration complete"
 # Initiating installation of OpenShift Container Platform using Ansible Playbook
 echo $(date) " - Running Prerequisites via Ansible Playbook"
 # runuser -l $SUDOUSER -c "ansible-playbook -e @azurevars.yaml -f 10 /usr/share/ansible/openshift-ansible/playbooks/prerequisites.yml"
-runuser -l $SUDOUSER -c "ansible-playbook -e openshift_cloudprovider_azure_client_id=$AADCLIENTID -e openshift_cloudprovider_azure_client_secret=\"$AADCLIENTSECRET\" -e openshift_cloudprovider_azure_tenant_id=TENANTID -e openshift_cloudprovider_azure_subscription_id=$SUBSCRIPTIONID -f 10 /usr/share/ansible/openshift-ansible/playbooks/prerequisites.yml"
+runuser -l $SUDOUSER -c "ansible-playbook -e openshift_cloudprovider_azure_client_id=$AADCLIENTID -e openshift_cloudprovider_azure_client_secret=\"$AADCLIENTSECRET\" -e openshift_cloudprovider_azure_tenant_id=$TENANTID -e openshift_cloudprovider_azure_subscription_id=$SUBSCRIPTIONID -f 10 /usr/share/ansible/openshift-ansible/playbooks/prerequisites.yml"
 echo $(date) " - Prerequisites check complete"
 
 # Initiating installation of OpenShift Container Platform using Ansible Playbook
 echo $(date) " - Installing OpenShift Container Platform via Ansible Playbook"
 # runuser -l $SUDOUSER -c "ansible-playbook -e @azurevars.yaml -f 10 /usr/share/ansible/openshift-ansible/playbooks/deploy_cluster.yml"
-runuser -l $SUDOUSER -c "ansible-playbook -e openshift_cloudprovider_azure_client_id=$AADCLIENTID -e openshift_cloudprovider_azure_client_secret=\"$AADCLIENTSECRET\" -e openshift_cloudprovider_azure_tenant_id=TENANTID -e openshift_cloudprovider_azure_subscription_id=$SUBSCRIPTIONID -f 10 /usr/share/ansible/openshift-ansible/playbooks/deploy_cluster.yml"
+runuser -l $SUDOUSER -c "ansible-playbook -e openshift_cloudprovider_azure_client_id=$AADCLIENTID -e openshift_cloudprovider_azure_client_secret=\"$AADCLIENTSECRET\" -e openshift_cloudprovider_azure_tenant_id=$TENANTID -e openshift_cloudprovider_azure_subscription_id=$SUBSCRIPTIONID -f 10 /usr/share/ansible/openshift-ansible/playbooks/deploy_cluster.yml"
 if [ $? -eq 0 ]
 then
     echo $(date) " - OpenShift Cluster installed successfully"
