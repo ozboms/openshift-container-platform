@@ -134,6 +134,10 @@ fi
 if [[ $AZURE == "true" ]]
 then
     export HAMODE="openshift_master_cluster_method=native"
+	if [[ $STORAGEKIND == "managed" ]]
+		SCKIND="openshift_storageclass_parameters={kind: 'managed', storageaccounttype: 'Premium_LRS'}"
+	else
+		SCKIND="openshift_storageclass_parameters={kind: 'shared', storageaccounttype: 'Premium_LRS'}"
 fi
 
 # Create Temp Ansible Hosts File
@@ -199,6 +203,7 @@ openshift_master_console_port=443
 osm_default_node_selector='node-role.kubernetes.io/compute=true'
 openshift_disable_check=memory_availability,docker_image_availability
 $CLOUDKIND
+$SCKIND
 
 # Workaround for docker image failure
 # https://access.redhat.com/solutions/3480921
