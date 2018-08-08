@@ -136,9 +136,9 @@ then
     export HAMODE="openshift_master_cluster_method=native"
 	if [[ $STORAGEKIND == "managed" ]]
 	then
-		SCKIND="openshift_storageclass_parameters={kind: 'managed', storageaccounttype: 'Premium_LRS'}"
+		SCKIND="openshift_storageclass_parameters={'kind': 'managed', 'storageaccounttype': 'Premium_LRS'}"
 	else
-		SCKIND="openshift_storageclass_parameters={kind: 'shared', storageaccounttype: 'Premium_LRS'}"
+		SCKIND="openshift_storageclass_parameters={'kind': 'shared', 'storageaccounttype': 'Premium_LRS'}"
 	fi
 fi
 
