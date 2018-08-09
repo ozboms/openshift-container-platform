@@ -13,14 +13,11 @@ sleep 10
 # Register Host with Cloud Access Subscription
 echo $(date) " - Register host with Cloud Access Subscription"
 
-subscription-manager register --username="$USERNAME_ORG" --password="$PASSWORD_ACT_KEY" || subscription-manager register --activationkey="$PASSWORD_ACT_KEY" --org="$USERNAME_ORG"
+subscription-manager register --force --username="$USERNAME_ORG" --password="$PASSWORD_ACT_KEY" || subscription-manager register --force --activationkey="$PASSWORD_ACT_KEY" --org="$USERNAME_ORG"
 
 if [ $? -eq 0 ]
 then
-    echo "Subscribed successfully"
-elif [ $? -eq 64 ]
-then
-    echo "This system is already registered."
+    echo $(date) " - Subscribed successfully"
 else
     echo "Incorrect Username / Password or Organization ID / Activation Key specified"
     exit 3
@@ -57,15 +54,11 @@ subscription-manager repos \
 # Install base packages and update system to latest packages
 echo $(date) " - Install base packages and update system to latest packages"
 
-yum -y install wget git net-tools bind-utils iptables-services bridge-utils bash-completion kexec-tools sos psacct
+yum -y install wget git net-tools bind-utils iptables-services bridge-utils bash-completion httpd-tools kexec-tools sos psacct
 yum -y install cloud-utils-growpart.noarch
 yum -y install ansible
 yum -y update glusterfs-fuse
 yum -y update --exclude=WALinuxAgent
-
-# Excluders for OpenShift
-# yum -y install atomic-openshift-excluder atomic-openshift-docker-excluder
-# atomic-openshift-excluder unexclude
 
 # Grow Root File System
 echo $(date) " - Grow Root FS"

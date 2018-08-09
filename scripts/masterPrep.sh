@@ -16,14 +16,11 @@ sleep 10
 # Register Host with Cloud Access Subscription
 echo $(date) " - Register host with Cloud Access Subscription"
 
-subscription-manager register --username="$USERNAME_ORG" --password="$PASSWORD_ACT_KEY" || subscription-manager register --activationkey="$PASSWORD_ACT_KEY" --org="$USERNAME_ORG"
+subscription-manager register --force --username="$USERNAME_ORG" --password="$PASSWORD_ACT_KEY" || subscription-manager register --force --activationkey="$PASSWORD_ACT_KEY" --org="$USERNAME_ORG"
 
 if [ $? -eq 0 ]
 then
-    echo "Subscribed successfully"
-elif [ $? -eq 64 ]
-then
-    echo "This system is already registered."
+    echo $(date) " - Subscribed successfully"
 else
     echo "Incorrect Username / Password or Organization ID / Activation Key specified"
     exit 3
@@ -65,10 +62,6 @@ yum -y install cloud-utils-growpart.noarch
 yum -y install ansible
 yum -y update glusterfs-fuse
 yum -y update --exclude=WALinuxAgent
-
-# Excluders for OpenShift
-# yum -y install atomic-openshift-excluder atomic-openshift-docker-excluder
-# atomic-openshift-excluder unexclude
 
 # Grow Root File System
 echo $(date) " - Grow Root FS"
@@ -121,38 +114,6 @@ fi
 
 systemctl enable docker
 systemctl start docker
-
-# Create Storage Class yml files on MASTER-0
-
-if hostname -f|grep -- "-0" >/dev/null
-then
-cat <<EOF > /home/${SUDOUSER}/scunmanaged.yml
-kind: StorageClass
-apiVersion: storage.k8s.io/v1
-metadata:
-  name: azure
-  annotations:
-    storageclass.kubernetes.io/is-default-class: "true"
-provisioner: kubernetes.io/azure-disk
-parameters:
-  location: ${LOCATION}
-  storageAccount: ${STORAGEACCOUNT}
-EOF
-
-cat <<EOF > /home/${SUDOUSER}/scmanaged.yml
-kind: StorageClass
-apiVersion: storage.k8s.io/v1
-metadata:
-  name: azure
-  annotations:
-    storageclass.kubernetes.io/is-default-class: "true"
-provisioner: kubernetes.io/azure-disk
-parameters:
-  kind: managed
-  location: ${LOCATION}
-  storageaccounttype: Premium_LRS
-EOF
-fi
 
 echo $(date) " - Script Complete"
 

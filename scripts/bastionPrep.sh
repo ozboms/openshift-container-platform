@@ -21,14 +21,11 @@ sleep 10
 # Register Host with Cloud Access Subscription
 echo $(date) " - Register host with Cloud Access Subscription"
 
-subscription-manager register --username="$USERNAME_ORG" --password="$PASSWORD_ACT_KEY" || subscription-manager register --activationkey="$PASSWORD_ACT_KEY" --org="$USERNAME_ORG"
+subscription-manager register --force --username="$USERNAME_ORG" --password="$PASSWORD_ACT_KEY" || subscription-manager register --force --activationkey="$PASSWORD_ACT_KEY" --org="$USERNAME_ORG"
 
 if [ $? -eq 0 ]
 then
-    echo "Subscribed successfully"
-elif [ $? -eq 64 ]
-then
-    echo "This system is already registered."
+    echo $(date) " - Subscribed successfully"
 else
     echo "Incorrect Username / Password or Organization ID / Activation Key specified"
     exit 3
@@ -73,10 +70,6 @@ yum -y install wget git net-tools bind-utils iptables-services bridge-utils bash
 yum -y install ansible
 yum -y update glusterfs-fuse
 echo $(date) " - Base package insallation complete"
-
-# Excluders for OpenShift
-# yum -y install atomic-openshift-excluder atomic-openshift-docker-excluder
-# atomic-openshift-excluder unexclude
 
 # Install OpenShift utilities
 echo $(date) " - Installing OpenShift utilities"
