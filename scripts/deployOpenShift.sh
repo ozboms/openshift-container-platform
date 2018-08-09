@@ -36,6 +36,12 @@ export NODEAVAILIBILITYSET=${29}
 
 export BASTION=$(hostname)
 
+# Set CNS to default storage type.  Will be overridden later if Azure is true
+export CNS_DEFAULT_STORAGE=true
+
+# Setting DOMAIN variable
+export DOMAIN=`domainname -d`
+
 # Determine if Commercial Azure or Azure Government
 CLOUD=$( curl -H Metadata:true "http://169.254.169.254/metadata/instance/compute/location?api-version=2017-04-02&format=text" | cut -c 1-2 )
 export CLOUD=${CLOUD^^}
@@ -44,7 +50,7 @@ export MASTERLOOP=$((MASTERCOUNT - 1))
 export INFRALOOP=$((INFRACOUNT - 1))
 export NODELOOP=$((NODECOUNT - 1))
 
-echo "Configuring SSH ControlPath to use shorter path name"
+echo $(date) " - Configuring /etc/ansible/config.cfg with additional options"
 
 sed -i -e "s/^# control_path = %(directory)s\/%%h-%%r/control_path = %(directory)s\/%%h-%%r/" /etc/ansible/ansible.cfg
 sed -i -e "s/^#host_key_checking = False/host_key_checking = False/" /etc/ansible/ansible.cfg
@@ -53,17 +59,17 @@ sed -i -e "s/^#stdout_callback = skippy/stdout_callback = skippy/" /etc/ansible/
 
 # Run on MASTER-0 node - configure registry to use Azure Storage
 # Create docker registry config based on Commercial Azure or Azure Government
-if [[ $CLOUD == "US" ]]
+if [ $CLOUD == "US" ]
 then
     DOCKERREGISTRYYAML=dockerregistrygov.yaml
-    export CLOUDNAME="AzureUSGovernmentCloud"
+    CLOUDNAME="AzureUSGovernmentCloud"
 else
     DOCKERREGISTRYYAML=dockerregistrypublic.yaml
-    export CLOUDNAME="AzurePublicCloud"
+    CLOUDNAME="AzurePublicCloud"
 fi
 
 # Setting the default openshift_cloudprovider_kind if Azure enabled
-if [[ $AZURE == "true" ]]
+if [ $AZURE == "true" ]
 then
     CLOUDKIND="openshift_cloudprovider_kind=azure
 openshift_cloudprovider_azure_client_id=\"{{ aadClientId }}\"
@@ -76,11 +82,18 @@ openshift_cloudprovider_azure_security_group_name=$NODENSG
 openshift_cloudprovider_azure_primary_availability_set_name=$NODEAVAILIBILITYSET
 openshift_cloudprovider_azure_resource_group=$RESOURCEGROUP
 openshift_cloudprovider_azure_location=$LOCATION"
+	CNS_DEFAULT_STORAGE=false
+	if [[ $STORAGEKIND == "managed" ]]
+	then
+		SCKIND="openshift_storageclass_parameters={'kind': 'managed', 'storageaccounttype': 'Premium_LRS'}"
+	else
+		SCKIND="openshift_storageclass_parameters={'kind': 'shared', 'storageaccounttype': 'Premium_LRS'}"
+	fi
 fi
 
 # Cloning Ansible playbook repository
 
-echo " - Cloning Ansible playbook repository"
+echo $(date) " - Cloning Ansible playbook repository"
 ((cd /home/$SUDOUSER && git clone https://github.com/Microsoft/openshift-container-platform-playbooks.git) || (cd /home/$SUDOUSER/openshift-container-platform-playbooks && git pull))
 
 if [ -d /home/${SUDOUSER}/openshift-container-platform-playbooks ]
@@ -90,9 +103,6 @@ else
     echo " - Retrieval of playbooks failed"
     exit 99
 fi
-
-# Setting DOMAIN variable
-export DOMAIN=`domainname -d`
 
 # Create Master nodes grouping
 echo $(date) " - Creating Master nodes grouping"
@@ -122,7 +132,6 @@ done
 if [ $ENABLECNS == "true" ]
 then
     echo $(date) " - Creating CNS nodes grouping"
-
     for (( c=0; c<$CNSCOUNT; c++ ))
     do
         cnsgroup="$cnsgroup
@@ -130,20 +139,15 @@ $CNS-$c openshift_hostname=$CNS-$c openshift_node_group_name='node-config-comput
     done
 fi
 
-# Setting the default openshift_cloudprovider_kind if Azure enabled
-if [[ $AZURE == "true" ]]
+# Setting the HA Mode if more than one master
+if [ $MASTERCOUNT != 1 ]
 then
+	echo $(date) " - Enabling HA mode for masters"
     export HAMODE="openshift_master_cluster_method=native"
-	if [[ $STORAGEKIND == "managed" ]]
-	then
-		SCKIND="openshift_storageclass_parameters={'kind': 'managed', 'storageaccounttype': 'Premium_LRS'}"
-	else
-		SCKIND="openshift_storageclass_parameters={'kind': 'shared', 'storageaccounttype': 'Premium_LRS'}"
-	fi
 fi
 
 # Create Temp Ansible Hosts File
-echo $(date) " - Create Ansible Hosts file"
+echo $(date) " - Create temporary Ansible Hosts file"
 
 cat > /etc/ansible/hosts <<EOF
 [tempnodes]
@@ -272,40 +276,29 @@ $cnsgroup
 [new_nodes]
 EOF
 
-# if [[ $AZURE == "true" ]]
-# then
-# # Create /etc/origin/cloudprovider/azurevars.yaml on bastion
-# cat > /home/$SUDOUSER/azurevars.yaml <<EOF
-# aadClientId: "$AADCLIENTID"
-# aadClientSecret: "$AADCLIENTSECRET"
-# subscriptionId: "$SUBSCRIPTIONID"
-# tenantId: "$TENANTID"
-# EOF
-# fi
-
 # Setup NetworkManager to manage eth0
 echo $(date) " - Running NetworkManager playbook"
-runuser -l $SUDOUSER -c "ansible-playbook -f 10 /usr/share/ansible/openshift-ansible/playbooks/openshift-node/network_manager.yml"
+runuser -l $SUDOUSER -c "ansible-playbook -f 30 /usr/share/ansible/openshift-ansible/playbooks/openshift-node/network_manager.yml"
 
 # Configure DNS so it always has the domain name
 echo $(date) " - Adding $DOMAIN to search for resolv.conf"
-runuser $SUDOUSER -c "ansible all -o -f 10 -b -m lineinfile -a 'dest=/etc/sysconfig/network-scripts/ifcfg-eth0 line=\"DOMAIN=$DOMAIN\"'"
+runuser $SUDOUSER -c "ansible all -o -f 30 -b -m lineinfile -a 'dest=/etc/sysconfig/network-scripts/ifcfg-eth0 line=\"DOMAIN=$DOMAIN\"'"
 
 # Configure resolv.conf on all hosts through NetworkManager
 echo $(date) " - Restarting NetworkManager"
-runuser -l $SUDOUSER -c "ansible all -o -f 10 -b -m service -a \"name=NetworkManager state=restarted\""
+runuser -l $SUDOUSER -c "ansible all -o -f 30 -b -m service -a \"name=NetworkManager state=restarted\""
 echo $(date) " - NetworkManager configuration complete"
 
-# Initiating installation of OpenShift Container Platform using Ansible Playbook
+# Run OpenShift Container Platform prerequisites playbook
 echo $(date) " - Running Prerequisites via Ansible Playbook"
-# runuser -l $SUDOUSER -c "ansible-playbook -e @azurevars.yaml -f 10 /usr/share/ansible/openshift-ansible/playbooks/prerequisites.yml"
-runuser -l $SUDOUSER -c "ansible-playbook -e openshift_cloudprovider_azure_client_id=$AADCLIENTID -e openshift_cloudprovider_azure_client_secret=\"$AADCLIENTSECRET\" -e openshift_cloudprovider_azure_tenant_id=$TENANTID -e openshift_cloudprovider_azure_subscription_id=$SUBSCRIPTIONID -f 10 /usr/share/ansible/openshift-ansible/playbooks/prerequisites.yml"
+# runuser -l $SUDOUSER -c "ansible-playbook -e @azurevars.yaml -f 30 /usr/share/ansible/openshift-ansible/playbooks/prerequisites.yml"
+runuser -l $SUDOUSER -c "ansible-playbook -e openshift_cloudprovider_azure_client_id=$AADCLIENTID -e openshift_cloudprovider_azure_client_secret=\"$AADCLIENTSECRET\" -e openshift_cloudprovider_azure_tenant_id=$TENANTID -e openshift_cloudprovider_azure_subscription_id=$SUBSCRIPTIONID -f 30 /usr/share/ansible/openshift-ansible/playbooks/prerequisites.yml"
 echo $(date) " - Prerequisites check complete"
 
 # Initiating installation of OpenShift Container Platform using Ansible Playbook
 echo $(date) " - Installing OpenShift Container Platform via Ansible Playbook"
-# runuser -l $SUDOUSER -c "ansible-playbook -e @azurevars.yaml -f 10 /usr/share/ansible/openshift-ansible/playbooks/deploy_cluster.yml"
-runuser -l $SUDOUSER -c "ansible-playbook -e openshift_cloudprovider_azure_client_id=$AADCLIENTID -e openshift_cloudprovider_azure_client_secret=\"$AADCLIENTSECRET\" -e openshift_cloudprovider_azure_tenant_id=$TENANTID -e openshift_cloudprovider_azure_subscription_id=$SUBSCRIPTIONID -f 10 /usr/share/ansible/openshift-ansible/playbooks/deploy_cluster.yml"
+# runuser -l $SUDOUSER -c "ansible-playbook -e @azurevars.yaml -f 30 /usr/share/ansible/openshift-ansible/playbooks/deploy_cluster.yml"
+runuser -l $SUDOUSER -c "ansible-playbook -e openshift_cloudprovider_azure_client_id=$AADCLIENTID -e openshift_cloudprovider_azure_client_secret=\"$AADCLIENTSECRET\" -e openshift_cloudprovider_azure_tenant_id=$TENANTID -e openshift_cloudprovider_azure_subscription_id=$SUBSCRIPTIONID -f 30 /usr/share/ansible/openshift-ansible/playbooks/deploy_cluster.yml"
 if [ $? -eq 0 ]
 then
     echo $(date) " - OpenShift Cluster installed successfully"
@@ -314,17 +307,13 @@ else
     exit 6
 fi
 
-echo $(date) " - Modifying sudoers"
-sed -i -e "s/Defaults    requiretty/# Defaults    requiretty/" /etc/sudoers
-sed -i -e '/Defaults    env_keep += "LC_TIME LC_ALL LANGUAGE LINGUAS _XKB_CHARSET XAUTHORITY"/aDefaults    env_keep += "PATH"' /etc/sudoers
+# echo $(date) " - Modifying sudoers"
+# sed -i -e "s/Defaults    requiretty/# Defaults    requiretty/" /etc/sudoers
+# sed -i -e '/Defaults    env_keep += "LC_TIME LC_ALL LANGUAGE LINGUAS _XKB_CHARSET XAUTHORITY"/aDefaults    env_keep += "PATH"' /etc/sudoers
 
-# Deploying Registry
-echo $(date) " - Registry automatically deployed to infra nodes"
 
-# Deploying Router
-echo $(date) " - Router automaticaly deployed to infra nodes"
-echo $(date) " - Re-enabling requiretty"
-sed -i -e "s/# Defaults    requiretty/Defaults    requiretty/" /etc/sudoers
+# echo $(date) " - Re-enabling requiretty"
+# sed -i -e "s/# Defaults    requiretty/Defaults    requiretty/" /etc/sudoers
 
 # Install OpenShift Atomic Client
 cd /root
@@ -339,29 +328,24 @@ yum -y install atomic-openshift-clients
 
 # Adding user to OpenShift authentication file
 echo $(date) " - Adding OpenShift user"
-runuser $SUDOUSER -c "ansible-playbook -f 10 ~/openshift-container-platform-playbooks/addocpuser.yaml"
+runuser $SUDOUSER -c "ansible-playbook -f 30 ~/openshift-container-platform-playbooks/addocpuser.yaml"
 
 # Assigning cluster admin rights to OpenShift user
 echo $(date) " - Assigning cluster admin rights to user"
-runuser $SUDOUSER -c "ansible-playbook -f 10 ~/openshift-container-platform-playbooks/assignclusteradminrights.yaml"
+runuser $SUDOUSER -c "ansible-playbook -f 30 ~/openshift-container-platform-playbooks/assignclusteradminrights.yaml"
 
 # Configure Docker Registry to use Azure Storage Account
 echo $(date) " - Configuring Docker Registry to use Azure Storage Account"
-runuser $SUDOUSER -c "ansible-playbook -f 10 ~/openshift-container-platform-playbooks/$DOCKERREGISTRYYAML"
-
-# Setting CNS as default storage, only AZURE being true will override it
-CNS_DEFAULT_STORAGE=true
+runuser $SUDOUSER -c "ansible-playbook -f 30 ~/openshift-container-platform-playbooks/$DOCKERREGISTRYYAML"
 
 # Handling Azure specific storage requirements if it is enabled
-if [[ $AZURE == "true" ]]
-then
-    # Azure wants to be primary, so let us let it be
-    CNS_DEFAULT_STORAGE=false
+# if [ $AZURE == "true" ]
+# then
 
-    # Create Storage Classes
-    echo $(date) " - Creating Storage Classes"
-    runuser $SUDOUSER -c "ansible-playbook -f 10 ~/openshift-container-platform-playbooks/configurestorageclass.yaml"
-fi 
+    # # Create Storage Classes
+    # echo $(date) " - Creating Storage Classes"
+    # runuser $SUDOUSER -c "ansible-playbook -f 30 ~/openshift-container-platform-playbooks/configurestorageclass.yaml"
+# fi 
 
 # Reconfigure glusterfs storage class
 if [ $CNS_DEFAULT_STORAGE == "true" ]
@@ -384,8 +368,8 @@ reclaimPolicy: Delete
 EOF
     runuser -l $SUDOUSER -c "oc create -f /home/$SUDOUSER/default-glusterfs-storage.yaml"
 
-    echo $(date) " - Sleep for 60"
-    sleep 60
+    echo $(date) " - Sleep for 10"
+    sleep 10
 fi
 
 # Ensuring selinux is configured properly
@@ -393,7 +377,7 @@ if [ $ENABLECNS == "true" ]
 then
     # Setting selinux to allow gluster-fusefs access
     echo $(date) " - Setting selinux to allow gluster-fuse access"
-    runuser -l $SUDOUSER -c "ansible all -o -f 10 -b -a 'sudo setsebool -P virt_sandbox_use_fusefs on'" || true
+    runuser -l $SUDOUSER -c "ansible all -o -f 30 -b -a 'sudo setsebool -P virt_sandbox_use_fusefs on'" || true
 # End of CNS specific section
 fi
 
@@ -404,14 +388,14 @@ runuser -l $SUDOUSER -c  "oc label --overwrite nodes --all logging-infra-fluentd
 
 # Restarting things so everything is clean before installing anything else
 echo $(date) " - Rebooting cluster to complete installation"
-runuser -l $SUDOUSER -c "ansible-playbook -f 10 ~/openshift-container-platform-playbooks/reboot-master.yaml"
-runuser -l $SUDOUSER -c "ansible-playbook -f 10 ~/openshift-container-platform-playbooks/reboot-nodes.yaml"
+runuser -l $SUDOUSER -c "ansible-playbook -f 30 ~/openshift-container-platform-playbooks/reboot-master.yaml"
+runuser -l $SUDOUSER -c "ansible-playbook -f 30 ~/openshift-container-platform-playbooks/reboot-nodes.yaml"
 sleep 20
 
 # Installing Service Catalog, Ansible Service Broker and Template Service Broker
 if [ $AZURE == "true" ] || [ $ENABLECNS == "true" ]
 then
-    runuser -l $SUDOUSER -c "ansible-playbook /usr/share/ansible/openshift-ansible/playbooks/openshift-service-catalog/config.yml -e openshift_enable_service_catalog=true"
+    runuser -l $SUDOUSER -c "ansible-playbook -e openshift_cloudprovider_azure_client_id=$AADCLIENTID -e openshift_cloudprovider_azure_client_secret=\"$AADCLIENTSECRET\" -e openshift_cloudprovider_azure_tenant_id=$TENANTID -e openshift_cloudprovider_azure_subscription_id=$SUBSCRIPTIONID -e openshift_enable_service_catalog=true -f 30 /usr/share/ansible/openshift-ansible/playbooks/openshift-service-catalog/config.yml"
 fi
 
 # Configure Metrics
@@ -421,9 +405,9 @@ then
     echo $(date) "- Deploying Metrics"
     if [ $AZURE == "true" ]
     then
-        runuser -l $SUDOUSER -c "ansible-playbook /usr/share/ansible/openshift-ansible/playbooks/openshift-metrics/config.yml -e openshift_metrics_install_metrics=True -e openshift_metrics_cassandra_storage_type=dynamic"
+        runuser -l $SUDOUSER -c "ansible-playbook -e openshift_cloudprovider_azure_client_id=$AADCLIENTID -e openshift_cloudprovider_azure_client_secret=\"$AADCLIENTSECRET\" -e openshift_cloudprovider_azure_tenant_id=$TENANTID -e openshift_cloudprovider_azure_subscription_id=$SUBSCRIPTIONID -e openshift_metrics_install_metrics=True -e openshift_metrics_cassandra_storage_type=dynamic -f 30 /usr/share/ansible/openshift-ansible/playbooks/openshift-metrics/config.yml"
     else
-        runuser -l $SUDOUSER -c "ansible-playbook /usr/share/ansible/openshift-ansible/playbooks/openshift-metrics/config.yml -e openshift_metrics_install_metrics=True"
+        runuser -l $SUDOUSER -c "ansible-playbook -e openshift_metrics_install_metrics=True /usr/share/ansible/openshift-ansible/playbooks/openshift-metrics/config.yml"
     fi
     if [ $? -eq 0 ]
     then
@@ -442,9 +426,9 @@ then
     echo $(date) "- Deploying Logging"
     if [ $AZURE == "true" ]
     then
-        runuser -l $SUDOUSER -c "ansible-playbook /usr/share/ansible/openshift-ansible/playbooks/openshift-logging/config.yml -e openshift_logging_install_logging=True -e openshift_logging_es_pvc_dynamic=true"
+        runuser -l $SUDOUSER -c "ansible-playbook -e openshift_cloudprovider_azure_client_id=$AADCLIENTID -e openshift_cloudprovider_azure_client_secret=\"$AADCLIENTSECRET\" -e openshift_cloudprovider_azure_tenant_id=$TENANTID -e openshift_cloudprovider_azure_subscription_id=$SUBSCRIPTIONID -e openshift_logging_install_logging=True -e openshift_logging_es_pvc_dynamic=true -f 30 /usr/share/ansible/openshift-ansible/playbooks/openshift-logging/config.yml"
     else
-        runuser -l $SUDOUSER -c "ansible-playbook /usr/share/ansible/openshift-ansible/playbooks/openshift-logging/config.yml -e openshift_logging_install_logging=True"
+        runuser -l $SUDOUSER -c "ansible-playbook -e openshift_logging_install_logging=True -f 30 /usr/share/ansible/openshift-ansible/playbooks/openshift-logging/config.yml"
     fi
     if [ $? -eq 0 ]
     then
