@@ -56,6 +56,11 @@ sed -i -e "s/^# control_path = %(directory)s\/%%h-%%r/control_path = %(directory
 sed -i -e "s/^#host_key_checking = False/host_key_checking = False/" /etc/ansible/ansible.cfg
 sed -i -e "s/^#pty=False/pty=False/" /etc/ansible/ansible.cfg
 sed -i -e "s/^#stdout_callback = skippy/stdout_callback = skippy/" /etc/ansible/ansible.cfg
+sed -i -e "s/^#pipelining = False/pipelining = True/" /etc/ansible/ansible.cfg
+
+# echo $(date) " - Modifying sudoers"
+sed -i -e "s/Defaults    requiretty/# Defaults    requiretty/" /etc/sudoers
+sed -i -e '/Defaults    env_keep += "LC_TIME LC_ALL LANGUAGE LINGUAS _XKB_CHARSET XAUTHORITY"/aDefaults    env_keep += "PATH"' /etc/sudoers
 
 # Run on MASTER-0 node - configure registry to use Azure Storage
 # Create docker registry config based on Commercial Azure or Azure Government
@@ -307,14 +312,6 @@ else
     exit 6
 fi
 
-# echo $(date) " - Modifying sudoers"
-# sed -i -e "s/Defaults    requiretty/# Defaults    requiretty/" /etc/sudoers
-# sed -i -e '/Defaults    env_keep += "LC_TIME LC_ALL LANGUAGE LINGUAS _XKB_CHARSET XAUTHORITY"/aDefaults    env_keep += "PATH"' /etc/sudoers
-
-
-# echo $(date) " - Re-enabling requiretty"
-# sed -i -e "s/# Defaults    requiretty/Defaults    requiretty/" /etc/sudoers
-
 # Install OpenShift Atomic Client
 cd /root
 mkdir .kube
@@ -442,6 +439,10 @@ fi
 # Setting Masters to non-schedulable
 echo $(date) " - Setting Masters to non-schedulable"
 runuser -l $SUDOUSER -c "ansible-playbook -f 10 ~/openshift-container-platform-playbooks/reset-masters-non-schedulable.yaml"
+
+# Re-enabling requiretty
+echo $(date) " - Re-enabling requiretty"
+sed -i -e "s/# Defaults    requiretty/Defaults    requiretty/" /etc/sudoers
 
 # Delete yaml files
 echo $(date) " - Deleting unecessary files"
