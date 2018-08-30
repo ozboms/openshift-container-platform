@@ -56,12 +56,6 @@
 				"description": "Pool Id with OpenShift entitlements for Broker / Master Ndoes"
 			}
 		},
-		"rhsmBrokerPoolId": {
-			"type": "string",
-			"metadata": {
-				"description": "Pool Id with OpenShift entitlements for App Nodes"
-			}
-		},
 		"sshPrivateKey": {
 			"type": "securestring",
 			"metadata": {
@@ -104,7 +98,7 @@
 				]
 			},
 			"protectedSettings": {
-				"commandToExecute": "[concat('bash ', parameters('bastionPrepScriptFileName'), ' ', parameters('rhsmUsernameOrOrgId'), ' ',variables('singlequote'), parameters('rhsmPasswordOrActivationKey'), variables('singlequote'), ' ', parameters('rhsmPoolId'), ' ', variables('singlequote'), parameters('sshPrivateKey'), variables('singlequote'), ' ', variables('singlequote'), parameters('adminUsername'), variables('singlequote'), ' ', variables('singlequote'), parameters('rhsmBrokerPoolId'), variables('singlequote'))]"
+				"commandToExecute": "[concat('bash ', parameters('bastionPrepScriptFileName'), ' ', parameters('rhsmUsernameOrOrgId'), ' ',variables('singlequote'), parameters('rhsmPasswordOrActivationKey'), variables('singlequote'), ' ', parameters('rhsmPoolId'), ' ', variables('singlequote'), parameters('sshPrivateKey'), variables('singlequote'), ' ', variables('singlequote'), parameters('adminUsername'), variables('singlequote'))]"
 			}
 		}
 	}],

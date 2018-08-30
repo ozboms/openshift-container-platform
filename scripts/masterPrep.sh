@@ -7,7 +7,6 @@ POOL_ID=$3
 SUDOUSER=$4
 LOCATION=$5
 STORAGEACCOUNT=$6
-BROKERPOOL_ID=$7
 
 # Remove RHUI
 
@@ -27,7 +26,7 @@ else
     exit 3
 fi
 
-subscription-manager attach --pool=$BROKERPOOL_ID > attach.log || subscription-manager attach --pool=$POOL_ID > attach.log
+subscription-manager attach --pool=$POOL_ID > attach.log
 if [ $? -eq 0 ]
 then
     echo "Pool attached successfully"

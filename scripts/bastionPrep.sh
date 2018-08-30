@@ -6,7 +6,6 @@ PASSWORD_ACT_KEY="$2"
 POOL_ID=$3
 PRIVATEKEY=$4
 SUDOUSER=$5
-BROKERPOOL_ID=$6
 
 # Generate private keys for use by Ansible
 echo $(date) " - Generating Private keys for use by Ansible for OpenShift Installation"
@@ -32,7 +31,7 @@ else
     exit 3
 fi
 
-subscription-manager attach --pool=$BROKERPOOL_ID > attach.log || subscription-manager attach --pool=$POOL_ID > attach.log
+subscription-manager attach --pool=$POOL_ID > attach.log
 if [ $? -eq 0 ]
 then
     echo "Pool attached successfully"
