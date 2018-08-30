@@ -1,5 +1,5 @@
 #!/bin/bash
-echo $(date) " - Starting Infra / Node Prep Script"
+echo $(date) " - Starting App Node Prep Script"
 
 USERNAME_ORG=$1
 PASSWORD_ACT_KEY="$2"
@@ -28,8 +28,8 @@ if [ $? -eq 0 ]
 then
     echo "Pool attached successfully"
 else
-    evaluate=$( cut -f 2-5 -d ' ' attach.log )
-    if [[ $evaluate == "unit has already had" ]]
+    grep attached attach.log
+    if [ $? -eq 0 ]
     then
         echo "Pool $POOL_ID was already attached and was not attached again."
     else

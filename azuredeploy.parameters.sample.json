@@ -59,6 +59,9 @@
 		"rhsmPoolId": {
 			"value": "8a81234151631b3201a5e6f4322e42a9"
 		},
+		"rhsmBrokerPoolId": {
+			"value": "8a81234151631b3201a5e6f4322e42a9"
+		},
 		"sshPublicKey": {
 			"value": "GEN-SSH-PUB-KEY"
 		},

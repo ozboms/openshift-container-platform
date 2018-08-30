@@ -205,7 +205,14 @@
 			"type": "string",
 			"minLength": 1,
 			"metadata": {
-				"description": "Red Hat Subscription Manager Pool ID with OpenShift entitlements. To find it, run on registered server: subscription-manager list"
+				"description": "Red Hat Subscription Manager Pool ID with OpenShift entitlements for Application Nodes. To find it, run on registered server: subscription-manager list"
+			}
+		},
+		"rhsmBrokerPoolId": {
+			"type": "string",
+			"minLength": 1,
+			"metadata": {
+				"description": "Red Hat Subscription Manager Pool ID with OpenShift entitlements for Broker / Master Nodes. If not using this, enter the Pool ID for Application Nodes. To find it, run on registered server: subscription-manager list"
 			}
 		},
 		"sshPublicKey": {
@@ -474,6 +481,7 @@
 		"sshKeyPath": "[concat('/home/', parameters('adminUsername'), '/.ssh/authorized_keys')]",
 		"bastionPrepScriptUrl": "[concat(parameters('_artifactsLocation'), '/scripts/bastionPrep.sh')]",
 		"nodePrepScriptUrl": "[concat(parameters('_artifactsLocation'), '/scripts/nodePrep.sh')]",
+		"infraPrepScriptUrl": "[concat(parameters('_artifactsLocation'), '/scripts/infraPrep.sh')]",
 		"masterPrepScriptUrl": "[concat(parameters('_artifactsLocation'), '/scripts/masterPrep.sh')]",
 		"openshiftDeploymentScriptUrl": "[concat(parameters('_artifactsLocation'), '/scripts/deployOpenShift.sh')]",
 		"bastionPrepScriptFileName": "bastionPrep.sh",
@@ -2026,6 +2034,9 @@
 					"rhsmPoolId": {
 						"value": "[parameters('rhsmPoolId')]"
 					},
+					"rhsmBrokerPoolId": {
+						"value": "[parameters('rhsmBrokerPoolId')]"
+					},
 					"sshPrivateKey": {
 						"reference": {
 							"keyvault": {
@@ -2069,7 +2080,7 @@
 					]
 				},
 				"protectedSettings": {
-					"commandToExecute": "[concat('bash ', variables('masterPrepScriptFileName'), ' ', parameters('rhsmUsernameOrOrgId'), ' ', variables('singlequote'), parameters('rhsmPasswordOrActivationKey'), variables('singlequote'), ' ', parameters('rhsmPoolId'), ' ', parameters('adminUsername'), ' ', variables('location'), ' ', variables('newStorageAccountPersistentVolume1'))]"
+					"commandToExecute": "[concat('bash ', variables('masterPrepScriptFileName'), ' ', parameters('rhsmUsernameOrOrgId'), ' ', variables('singlequote'), parameters('rhsmPasswordOrActivationKey'), variables('singlequote'), ' ', parameters('rhsmPoolId'), ' ', parameters('adminUsername'), ' ', variables('location'), ' ', variables('newStorageAccountPersistentVolume1'), ' ', variables('singlequote'), parameters('rhsmBrokerPoolId'), variables('singlequote'))]"
 				}
 			}
 		}, {
@@ -2098,11 +2109,11 @@
 				"autoUpgradeMinorVersion": true,
 				"settings": {
 					"fileUris": [
-						"[variables('nodePrepScriptUrl')]"
+						"[variables('infraPrepScriptUrl')]"
 					]
 				},
 				"protectedSettings": {
-					"commandToExecute": "[concat('bash ', variables('nodePrepScriptFileName'), ' ', parameters('rhsmUsernameOrOrgId'), ' ', variables('singlequote'), parameters('rhsmPasswordOrActivationKey'), variables('singlequote'), ' ', parameters('rhsmPoolId'))]"
+					"commandToExecute": "[concat('bash ', variables('nodePrepScriptFileName'), ' ', parameters('rhsmUsernameOrOrgId'), ' ', variables('singlequote'), parameters('rhsmPasswordOrActivationKey'), variables('singlequote'), ' ', parameters('rhsmPoolId'), ' ', variables('singlequote'), parameters('rhsmBrokerPoolId'), variables('singlequote'))]"
 				}
 			}
 		}, {

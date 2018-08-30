@@ -59,6 +59,9 @@
 		"rhsmPoolId": {
 			"value": "changeme"
 		},
+		"rhsmBrokerPoolId": {
+			"value": "changeme"
+		},
 		"sshPublicKey": {
 			"value": "GEN-SSH-PUB-KEY"
 		},
